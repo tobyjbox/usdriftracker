@@ -9,7 +9,13 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "probe:mintable-v3": "npx tsx scripts/probe-mintable-v3.ts",
+    "probe:mintable-formula": "npx tsx scripts/probe-mintable-formula.ts",
+    "watch:txpool": "npx tsx scripts/watch-rsk-txpool.ts",
+    "spike:blockscout-ws": "npx tsx scripts/spike-blockscout-ws.ts",
+    "dashboard:live": "npx tsx scripts/blockscout-ws-dashboard.ts",
+    "dashboard:blockscout-ws": "npm run dashboard:live"
   },
   "dependencies": {
     "@types/react": "^18.3.3",
@@ -34,8 +40,9 @@
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",
     "@types/node": "^25.3.2",
-    "@vitest/ui": "^1.0.4",
-    "jsdom": "^23.0.1",
-    "vitest": "^1.0.4"
+    "@vitest/ui": "^3.2.4",
+    "jsdom": "^29.0.2",
+    "phoenix": "^1.8.7",
+    "vitest": "^3.2.4"
   }
 }

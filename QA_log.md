@@ -6,6 +6,13 @@
 
 ## Status Update (Latest)
 
+### 2026-06-02 — Review (last 24h working tree)
+- **High:** USDRIF mintable can return Not Available if any of the six getter calls fail (single Promise.all). Consider per-call fallbacks or at least return `getTPAvailableToMint` when hand-rolled inputs fail.
+- **Medium:** Tooltip positioning uses fixed width (400px) but CSS caps width for small screens; wide tooltips can be mis-centered/offscreen on narrow viewports.
+- **Medium:** `jsdom`/`vitest` bumps introduce Node engine `>=20.19.0` via transitive deps; Vercel/CI may fail if pinned to older Node 20.
+- **Test gap:** No tests run for this review.
+  - **Note:** Findings copied to the agent log at `/Users/tobybox/dev/agent_logs/usdriftracker_QA_cursor_codex-5.2_log.md` to comply with agent-context rules.
+
 ### Resolved
 - `history.ts`: type safety fix, quota handling, SSR guard, JSON validation
 - `MiniLineGraph.tsx`: y-offset fix, `useId` for gradients, placeholder state, min/max optimization

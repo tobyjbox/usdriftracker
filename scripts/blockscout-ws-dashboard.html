@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RSK Live Chain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #070b10;
+      --panel: #0e141c;
+      --border: #1a2533;
+      --text: #e8eef5;
+      --muted: #6b7d92;
+      --cyan: #00e5ff;
+      --green: #3dff9a;
+      --yellow: #ffd54a;
+      --magenta: #e879f9;
+      --blue: #60a5fa;
+      --orange: #fb923c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Rajdhani, system-ui, sans-serif;
+      background: radial-gradient(ellipse at top, #0f1824 0%, var(--bg) 55%);
+      color: var(--text);
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem 2rem;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(14, 20, 28, 0.85);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+    }
+    .led {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
+    }
+    .led.on { background: var(--green); box-shadow: 0 0 12px var(--green); }
+    .led.warn { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); }
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      margin-left: auto;
+    }
+    .stat {
+      text-align: center;
+      min-width: 4.5rem;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    @media (max-width: 960px) {
+      main { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      min-height: 200px;
+    }
+    .panel h2 {
+      margin: 0 0 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+    .panel-wide { grid-column: 1 / -1; }
+    canvas { display: block; width: 100%; height: 140px; }
+    .bars { display: flex; flex-direction: column; gap: 0.45rem; }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 7rem 1fr 2.5rem;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .bar-label { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track {
+      height: 10px;
+      background: #141c28;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 5px;
+      transition: width 0.35s ease;
+    }
+    .bar-count { text-align: right; font-variant-numeric: tabular-nums; font-family: JetBrains Mono, monospace; font-size: 0.8rem; }
+    .cat-blocks { background: linear-gradient(90deg, var(--blue), #93c5fd); }
+    .cat-transactions { background: linear-gradient(90deg, var(--yellow), #fde68a); }
+    .cat-addresses { background: linear-gradient(90deg, var(--green), #86efac); }
+    .cat-tokens { background: linear-gradient(90deg, var(--magenta), #f0abfc); }
+    .cat-exchange_rate { background: linear-gradient(90deg, var(--cyan), #67e8f9); }
+    .cat-other { background: linear-gradient(90deg, var(--orange), #fdba74); }
+    .feed-filters {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .feed-filters button {
+      font-family: Rajdhani, sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.85rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #0a1018;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .feed-filters button.active {
+      border-color: rgba(0, 229, 255, 0.4);
+      color: var(--cyan);
+      background: rgba(0, 229, 255, 0.08);
+    }
+    .source-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      margin-right: 0.35rem;
+      vertical-align: middle;
+    }
+    .source-blockscout { background: rgba(96, 165, 250, 0.2); color: var(--blue); }
+    .source-mempool { background: rgba(255, 213, 74, 0.15); color: var(--yellow); }
+    .leaderboard {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .leaderboard-row {
+      display: grid;
+      grid-template-columns: 1.5rem 3rem 1fr auto;
+      gap: 0.5rem;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    .leaderboard-row a {
+      color: var(--cyan);
+      text-decoration: none;
+      font-size: 0.75rem;
+    }
+    .leaderboard-row a:hover { text-decoration: underline; }
+    .mempool-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.65rem;
+    }
+    .event-card.hidden { display: none; }
+    .feed {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 420px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 0.25rem;
+      min-height: 0;
+    }
+    .feed::-webkit-scrollbar { width: 6px; }
+    .feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .event-card {
+      flex-shrink: 0;
+      background: #0a1018;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      animation: slideIn 0.35s ease;
+      overflow: hidden;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .event-card:hover { border-color: #2a3a4f; }
+    .event-card.expanded {
+      border-color: rgba(0, 229, 255, 0.35);
+      box-shadow: 0 0 0 1px rgba(0, 229, 255, 0.12);
+    }
+    .event-row {
+      display: grid;
+      grid-template-columns: 4px 1fr auto auto;
+      gap: 0.75rem;
+      align-items: start;
+      padding: 0.6rem 0.75rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .event-row:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: -2px;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .event-stripe { border-radius: 4px; align-self: stretch; min-height: 2.5rem; }
+    .event-body h3 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: JetBrains Mono, monospace;
+    }
+    .event-body p {
+      margin: 0.2rem 0 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .event-meta {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-align: right;
+      white-space: nowrap;
+      font-family: JetBrains Mono, monospace;
+    }
+    .event-chevron {
+      color: var(--muted);
+      font-size: 0.75rem;
+      line-height: 1.4;
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+    .event-card.expanded .event-chevron {
+      transform: rotate(180deg);
+      color: var(--cyan);
+    }
+    .event-expand {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 0.75rem;
+      background: #060a10;
+    }
+    .event-card.expanded .event-expand { display: block; }
+    .event-fields {
+      display: grid;
+      grid-template-columns: minmax(7rem, 28%) 1fr;
+      gap: 0.35rem 1rem;
+      margin: 0 0 0.75rem;
+      font-size: 0.8rem;
+    }
+    .event-fields dt {
+      margin: 0;
+      color: var(--muted);
+      font-family: JetBrains Mono, monospace;
+      word-break: break-all;
+    }
+    .event-fields dd {
+      margin: 0;
+      font-family: JetBrains Mono, monospace;
+      word-break: break-all;
+    }
+    .event-payload-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .event-payload {
+      margin: 0;
+      padding: 0.65rem 0.75rem;
+      background: #0a1018;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: JetBrains Mono, monospace;
+      font-size: 0.72rem;
+      line-height: 1.45;
+      color: #b8c5d6;
+      overflow-x: auto;
+      max-height: 280px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .legend span::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      margin-right: 0.35rem;
+      vertical-align: middle;
+    }
+    .legend .l-blocks::before { background: var(--blue); }
+    .legend .l-transactions::before { background: var(--yellow); }
+    .legend .l-addresses::before { background: var(--green); }
+    .legend .l-tokens::before { background: var(--magenta); }
+    .legend .l-exchange_rate::before { background: var(--cyan); }
+    .pulse-ring {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0.5rem auto 0;
+    }
+    .pulse-ring svg { width: 100%; height: 100%; }
+    .empty {
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 2rem 0;
+      text-align: center;
+    }
+    footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>RSK Live Chain</h1>
+    <div class="status">
+      <span class="led" id="led"></span>
+      <span id="statusText">Connecting…</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Events</div></div>
+      <div class="stat"><div class="stat-value" id="statRate">0</div><div class="stat-label">/ min</div></div>
+      <div class="stat"><div class="stat-value" id="statPending">0</div><div class="stat-label">Pending</div></div>
+      <div class="stat"><div class="stat-value" id="statQueued">0</div><div class="stat-label">Queued</div></div>
+      <div class="stat"><div class="stat-value" id="statSplit">0/0</div><div class="stat-label">MP / BS</div></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Event rate (last 2 min)</h2>
+      <canvas id="rateChart" width="640" height="140"></canvas>
+    </section>
+
+    <section class="panel">
+      <h2>Activity pulse</h2>
+      <div class="pulse-ring">
+        <svg viewBox="0 0 120 120" id="pulseSvg">
+          <circle cx="60" cy="60" r="48" fill="none" stroke="#1a2533" stroke-width="8" />
+          <circle cx="60" cy="60" r="48" fill="none" stroke="#00e5ff" stroke-width="8"
+            stroke-dasharray="301.6" stroke-dashoffset="301.6" stroke-linecap="round"
+            transform="rotate(-90 60 60)" id="pulseArc" />
+          <text x="60" y="56" text-anchor="middle" fill="#e8eef5" font-size="22" font-family="Rajdhani" font-weight="700" id="pulseValue">0</text>
+          <text x="60" y="72" text-anchor="middle" fill="#6b7d92" font-size="10" font-family="Rajdhani">events/min</text>
+        </svg>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>By category</h2>
+      <div class="bars" id="categoryBars"></div>
+      <div class="legend">
+        <span class="l-blocks">Blocks</span>
+        <span class="l-transactions">Transactions</span>
+        <span class="l-addresses">Addresses</span>
+        <span class="l-tokens">Tokens</span>
+        <span class="l-exchange_rate">Rates</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Top topics</h2>
+      <div class="bars" id="topicBars"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Top contracts (mempool)</h2>
+      <div class="mempool-meta" id="mempoolMeta">Polling mempool…</div>
+      <div class="leaderboard" id="leaderboard">
+        <div class="empty">Waiting for contract calls…</div>
+      </div>
+    </section>
+
+    <section class="panel panel-wide">
+      <h2>Live stream <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">· click to expand</span></h2>
+      <div class="feed-filters" id="feedFilters">
+        <button type="button" class="active" data-filter="all">All</button>
+        <button type="button" data-filter="mempool">Mempool</button>
+        <button type="button" data-filter="blockscout">Blockscout</button>
+      </div>
+      <div class="feed" id="feed">
+        <div class="empty" id="feedEmpty">Waiting for events…</div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer">Blockscout WS + mempool RPC · SSE dashboard</footer>
+
+  <script>
+    const CATEGORY_COLORS = {
+      blocks: '#60a5fa',
+      transactions: '#ffd54a',
+      addresses: '#3dff9a',
+      tokens: '#e879f9',
+      exchange_rate: '#00e5ff',
+      token: '#3dff9a',
+      rbtc: '#ffd54a',
+      approve: '#60a5fa',
+      contract: '#e879f9',
+      deploy: '#fb923c',
+      other: '#fb923c',
+    };
+
+    const led = document.getElementById('led');
+    const statusText = document.getElementById('statusText');
+    const statTotal = document.getElementById('statTotal');
+    const statRate = document.getElementById('statRate');
+    const statPending = document.getElementById('statPending');
+    const statQueued = document.getElementById('statQueued');
+    const statSplit = document.getElementById('statSplit');
+    const categoryBars = document.getElementById('categoryBars');
+    const topicBars = document.getElementById('topicBars');
+    const leaderboard = document.getElementById('leaderboard');
+    const mempoolMeta = document.getElementById('mempoolMeta');
+    const feedFilters = document.getElementById('feedFilters');
+    const feed = document.getElementById('feed');
+    const feedEmpty = document.getElementById('feedEmpty');
+    const rateChart = document.getElementById('rateChart');
+    const pulseArc = document.getElementById('pulseArc');
+    const pulseValue = document.getElementById('pulseValue');
+    const footer = document.getElementById('footer');
+
+    const MAX_FEED = 50;
+    const CIRC = 2 * Math.PI * 48;
+    let activeFilter = 'all';
+
+    function renderBars(container, rows, classPrefix) {
+      if (!rows.length) {
+        container.innerHTML = '<div class="empty">No data yet</div>';
+        return;
+      }
+      const max = Math.max(...rows.map(r => r.count), 1);
+      container.innerHTML = rows.map(r => `
+        <div class="bar-row">
+          <span class="bar-label" title="${r.label}">${r.label}</span>
+          <div class="bar-track"><div class="bar-fill cat-${classPrefix}${r.key}" style="width:${(r.count / max) * 100}%"></div></div>
+          <span class="bar-count">${r.count}</span>
+        </div>
+      `).join('');
+    }
+
+    function drawRateChart(buckets) {
+      const ctx = rateChart.getContext('2d');
+      const w = rateChart.width;
+      const h = rateChart.height;
+      const pad = { t: 8, r: 8, b: 20, l: 32 };
+      ctx.clearRect(0, 0, w, h);
+
+      const vals = buckets.length ? buckets : [0];
+      const max = Math.max(...vals, 1);
+      const gw = w - pad.l - pad.r;
+      const gh = h - pad.t - pad.b;
+
+      ctx.strokeStyle = '#1a2533';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 3; i++) {
+        const y = pad.t + (gh * i) / 3;
+        ctx.beginPath();
+        ctx.moveTo(pad.l, y);
+        ctx.lineTo(w - pad.r, y);
+        ctx.stroke();
+      }
+
+      ctx.beginPath();
+      vals.forEach((v, i) => {
+        const x = pad.l + (i / Math.max(vals.length - 1, 1)) * gw;
+        const y = pad.t + gh - (v / max) * gh;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      const grad = ctx.createLinearGradient(0, pad.t, 0, h - pad.b);
+      grad.addColorStop(0, 'rgba(0,229,255,0.25)');
+      grad.addColorStop(1, 'rgba(0,229,255,0)');
+      ctx.lineTo(pad.l + gw, pad.t + gh);
+      ctx.lineTo(pad.l, pad.t + gh);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.fillStyle = '#6b7d92';
+      ctx.font = '10px JetBrains Mono';
+      ctx.fillText(String(max), 4, pad.t + 10);
+      ctx.fillText('0', 8, pad.t + gh);
+      ctx.fillText('now', w - pad.r - 22, h - 4);
+    }
+
+    function stripeColor(ev) {
+      if (ev.source === 'mempool') return CATEGORY_COLORS[ev.category] || CATEGORY_COLORS.other;
+      return CATEGORY_COLORS[ev.category] || CATEGORY_COLORS.other;
+    }
+
+    function applyFeedFilter() {
+      for (const card of feed.querySelectorAll('.event-card')) {
+        const src = card.dataset.source || 'blockscout';
+        const show = activeFilter === 'all' || src === activeFilter;
+        card.classList.toggle('hidden', !show);
+      }
+    }
+
+    feedFilters.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-filter]');
+      if (!btn) return;
+      activeFilter = btn.dataset.filter;
+      feedFilters.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+      applyFeedFilter();
+    });
+
+    function renderLeaderboard(mempool) {
+      if (!mempool) return;
+      const price = mempool.rbtcUsd != null ? `RBTC $${Math.round(mempool.rbtcUsd).toLocaleString()}` : 'RBTC/USD —';
+      mempoolMeta.textContent = `${mempool.pending} pending · ${mempool.queued} queued · ${mempool.pendingBlockTxs} in next block · ${price} · ${mempool.trackedTxCount} unique txs tracked`;
+      if (mempool.error) {
+        mempoolMeta.textContent += ` · error: ${mempool.error}`;
+      }
+      const rows = mempool.leaderboard || [];
+      if (!rows.length) {
+        leaderboard.innerHTML = '<div class="empty">No contract calls yet</div>';
+        return;
+      }
+      leaderboard.innerHTML = rows.map((r, i) => `
+        <div class="leaderboard-row">
+          <span>${i + 1}</span>
+          <span>${r.calls}</span>
+          <span>${escapeHtml(r.label)}</span>
+          <a href="${escapeHtml(r.blockscoutUrl)}" target="_blank" rel="noopener">open ↗</a>
+        </div>
+      `).join('');
+    }
+
+    function addEventCard(ev) {
+      if (feedEmpty.parentNode) feedEmpty.remove();
+      const stripe = stripeColor(ev);
+      const source = ev.source || 'blockscout';
+      const sourceLabel = source === 'mempool' ? 'MP' : 'BS';
+      const card = document.createElement('article');
+      card.className = 'event-card';
+      card.dataset.source = source;
+      if (activeFilter !== 'all' && source !== activeFilter) card.classList.add('hidden');
+
+      const fieldsHtml = (ev.fields || [])
+        .map(f => `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.value)}</dd>`)
+        .join('');
+
+      const payloadText = ev.payload == null
+        ? '(empty)'
+        : typeof ev.payload === 'string'
+          ? ev.payload
+          : JSON.stringify(ev.payload, null, 2);
+
+      card.innerHTML = `
+        <div class="event-row" role="button" tabindex="0" aria-expanded="false">
+          <div class="event-stripe" style="background:${stripe}"></div>
+          <div class="event-body">
+            <h3><span class="source-badge source-${source}">${sourceLabel}</span>${escapeHtml(ev.title)}</h3>
+            <p>${escapeHtml(ev.topicLabel)} · ${escapeHtml(ev.event)} · ${escapeHtml(ev.detail)}</p>
+          </div>
+          <div class="event-meta">${new Date(ev.ts).toLocaleTimeString()}</div>
+          <div class="event-chevron" aria-hidden="true">▼</div>
+        </div>
+        <div class="event-expand">
+          <dl class="event-fields">${fieldsHtml}</dl>
+          <div class="event-payload-label">Raw payload</div>
+          <pre class="event-payload">${escapeHtml(payloadText)}</pre>
+        </div>
+      `;
+
+      const row = card.querySelector('.event-row');
+      const toggle = () => {
+        const open = card.classList.toggle('expanded');
+        row.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      row.addEventListener('click', toggle);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle();
+        }
+      });
+
+      feed.prepend(card);
+      while (feed.children.length > MAX_FEED) feed.lastChild.remove();
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function applyStats(data) {
+      statTotal.textContent = data.totalEvents ?? 0;
+      statRate.textContent = (data.eventsPerMin ?? 0).toFixed(1);
+      statPending.textContent = data.mempool?.pending ?? 0;
+      statQueued.textContent = data.mempool?.queued ?? 0;
+      statSplit.textContent = `${data.mempoolEvents ?? 0}/${data.blockscoutEvents ?? 0}`;
+
+      const connected = data.socketConnected;
+      const listening = data.listening;
+      const mempoolOk = !data.mempool?.error;
+      led.className = 'led' + (connected && listening && mempoolOk ? ' on' : connected || mempoolOk ? ' warn' : '');
+      statusText.textContent = data.statusText || (connected ? 'Connected' : 'Disconnected');
+
+      const rate = data.eventsPerMin ?? 0;
+      pulseValue.textContent = rate.toFixed(1);
+      const frac = Math.min(rate / 60, 1);
+      pulseArc.setAttribute('stroke-dashoffset', String(CIRC * (1 - frac)));
+
+      if (data.categoryCounts) {
+        const rows = Object.entries(data.categoryCounts)
+          .sort((a, b) => b[1] - a[1])
+          .map(([key, count]) => ({ key, label: key.replace('_', ' '), count }));
+        renderBars(categoryBars, rows, '');
+      }
+
+      if (data.topTopics) {
+        renderBars(
+          topicBars,
+          data.topTopics.map(t => ({ key: '', label: t.label, count: t.count })),
+          'other'
+        );
+      }
+
+      if (data.rateBuckets) drawRateChart(data.rateBuckets);
+
+      if (data.mempool) renderLeaderboard(data.mempool);
+
+      if (data.network && data.socketUrl) {
+        footer.textContent = `${data.network} · ${data.socketUrl} · ${data.rpcUrl ?? 'RPC'} · SSE dashboard`;
+      }
+    }
+
+    const es = new EventSource('/api/stream');
+
+    es.addEventListener('stats', (e) => {
+      try { applyStats(JSON.parse(e.data)); } catch (_) {}
+    });
+
+    es.addEventListener('event', (e) => {
+      try { addEventCard(JSON.parse(e.data)); } catch (_) {}
+    });
+
+    es.onerror = () => {
+      led.className = 'led';
+      statusText.textContent = 'Stream disconnected — retrying…';
+    };
+  </script>
+</body>
+</html>
